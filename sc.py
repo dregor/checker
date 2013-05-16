@@ -4,7 +4,9 @@
 import os, sys, argparse, pickle, io
 from check import Site
 
-curdir =  os.path.dirname(os.path.abspath(__file__)) 
+MAX_DEVI = 30.
+
+curdir =  os.path.dirname(os.path.abspath(__file__))
 image_dir = os.path.join(curdir,'images')
 
 def save(site):
@@ -19,14 +21,25 @@ def save(site):
         image.close()
     finally:
         return result
-    
+
+def send(to, text):
+    import smtplib
+    from email.mime.text import MIMEText
+    msg = MIMEText( text )
+    msg['Subject'] =  'Test-site errors.'
+    msg['From'] = 'test@site.check'
+    msg['To'] = to
+    post = smtplib.SMTP('localhost')
+    result = s.sendmail('test@site.check', [ to ], msg.as_string())
+    post.quit()
+    return result
+
 def read( name ):
-        file = io.open( os.path.join(image_dir,name),'rb')
-        site = pickle.load( file )
-        print( 'Load from : ' + str(file) + '\n' + str(site))
-        file.close()
-        return site
-    
+    file = io.open( os.path.join(image_dir,name),'rb')
+    site = pickle.load( file )
+    file.close()
+    return site
+
 def read_all( path = None ):
     if (path == None):
         path = image_dir
@@ -35,52 +48,63 @@ def read_all( path = None ):
             fullname = os.path.join( root, name )
             if (fullname[-3:]=='.pp'):
                 file = io.open( fullname, 'rb' )
-                check( name )
+                yield check( name )
 
 def check( name ):
     site = read( name )
-    print('Site - %s, Matches - %f, deviation - %f' % (site.name, site.compare(), site.deviation ))
-    
-    
+    site.compare()
+    return site
+
 def main():
     if not os.path.isdir( image_dir ):
         os.mkdir(image_dir)
-    
+
     parser = argparse.ArgumentParser(description='Parse sites.')
     subparsers = parser.add_subparsers(help='Variants job:', dest='vary')
     image_parser = subparsers.add_parser('image', help='Create image site.')
     check_parser = subparsers.add_parser('check',help='Check sites.')
-    
+
     image_parser.add_argument('-u', '--url',
                             default = None,
                             dest = 'url',
                             help ='URL site')
-    
+
     image_parser.add_argument('-n','--name',
                               dest = 'name',
                               default = None,
                               help = 'name image site.')
-    
+
     check_parser.add_argument('-n','--name',
                               dest = 'name',
                               default = None,
                               help = 'name image site.')
-    
+
+    check_parser.add_argument('-m','--mail',
+                              dest = 'mail',
+                              default = None,
+                              help = 'Send mail if site is <bad>.')
     pars = parser.parse_args()
-    
+
     if pars.vary == 'image':
         if pars.url != None and pars.name != None:
             site = Site( url = pars.url, name = pars.name )
-            print( save(site) ) 
+            print( save(site) )
             print('deviation %f .' % site.deviation)
         else:
             print('Enter URL and image name. See -h or --help.')
     else:
         if pars.name == None:
-            read_all()
+            text = ''
+            for site in read_all():
+                print(site)
+                if site.is_bad: text += site
         else:
-            check( pars.name + '.pp' )
-            
+            site = check( pars.name + '.pp' )
+            text = site
+            print(text)
+
+        if pars.mail != None:
+            send('dregor614@bk.ru',text)
 if __name__ == '__main__':
     main()
-            
+
