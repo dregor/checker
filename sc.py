@@ -30,7 +30,7 @@ def send(to, text):
     msg['From'] = 'test@site.check'
     msg['To'] = to
     post = smtplib.SMTP('localhost')
-    result = s.sendmail('test@site.check', [ to ], msg.as_string())
+    result = post.sendmail('test@site.check', [ to ], msg.as_string())
     post.quit()
     return result
 
@@ -89,7 +89,6 @@ def main():
         if pars.url != None and pars.name != None:
             site = Site( url = pars.url, name = pars.name )
             print( save(site) )
-            print('deviation %f .' % site.deviation)
         else:
             print('Enter URL and image name. See -h or --help.')
     else:
@@ -97,14 +96,15 @@ def main():
             text = ''
             for site in read_all():
                 print(site)
-                if site.is_bad: text += site
+                if site.is_bad: text += str(site)
         else:
             site = check( pars.name + '.pp' )
             text = site
             print(text)
 
         if pars.mail != None:
-            send('dregor614@bk.ru',text)
+            send(pars.mail,text)
+
 if __name__ == '__main__':
     main()
 

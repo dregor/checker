@@ -50,6 +50,10 @@ class Site():
             self.is_bad = False
 
     def __str__(self):
-        return (' Site - %s , url - %s, bad deviation - %f \n' % (  self.name,
+        return (' Site - %s ,url - %s ,matches - %f, deviation - %f ,bad deviation - %f, is bad - %s. \n' % (
+                                                                    self.name,
                                                                     self.url,
-                                                                    100. - (self.matches + self.deviation)))
+                                                                    self.matches,
+                                                                    self.deviation,
+                                                                    100. - (self.matches + self.deviation),
+                                                                    self.is_bad))
