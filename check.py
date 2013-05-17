@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-import urllib, io
+import urllib.request, io
 
 class Site():
     deviation = 0.
@@ -20,28 +20,37 @@ class Site():
         self.deviation = 100. - self.matches
 
     def load(self):
-        return urllib.urlopen( self.url ).readlines()
+        return  urllib.request.urlopen( self.url ).readlines()
 
     def _procent(self, correct, bad ):
-        return round((float(correct) / (correct + bad))*100)
+        return (float(correct) / (correct + bad)*100)
 
     def compare(self, max = 30. ):
         correct = 0
         bad = 0
-        correct_this = False
+        found = []
+        not_found = []
 
-        for current_str in self.load():
-            correct_this = False
+        for current in self.load():
 
-            for old_str in  self.content:
-                if current_str == old_str:
-                    correct_this = True
-                    break
+            for old in self.content:
+                if current not in found:
+                    if str(current).strip() == str(old).strip():
+                        found.append(current)
+                        break
 
-            if correct_this :
-                correct += 1
-            else:
-                bad += 1
+            if current not in found:
+                not_found.append(current)
+
+        for item in self.content:
+            if item not in found:
+                not_found.append(item)
+
+        for item in found:
+            correct += 1
+
+        for item in not_found:
+            bad += 1
 
         self.matches = self._procent(correct, bad)
         if (100. - (self.matches + self.deviation)) >= max:
@@ -50,7 +59,7 @@ class Site():
             self.is_bad = False
 
     def __str__(self):
-        return (' Site - %s ,url - %s ,matches - %f, deviation - %f ,bad deviation - %f, is bad - %s. \n' % (
+        return (' Site - %s ,url - %s ,matches - %3.2f, deviation - %3.2f ,bad deviation - %3.2f, is bad - %s. \n' % (
                                                                     self.name,
                                                                     self.url,
                                                                     self.matches,

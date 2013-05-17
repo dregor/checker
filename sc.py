@@ -4,8 +4,6 @@
 import os, sys, argparse, pickle, io
 from check import Site
 
-MAX_DEVI = 30.
-
 curdir =  os.path.dirname(os.path.abspath(__file__))
 image_dir = os.path.join(curdir,'images')
 
@@ -14,7 +12,7 @@ def save(site):
     try:
         image = io.open( os.path.join(image_dir,(site.name+'.pp')),'wb')
     except:
-        result = 'Write to file error!' + str(sys.exc_info())
+        result = 'Write to file error! ' + str(sys.exc_info())
     else:
         pickle.dump( site, image )
         result = 'Write to - ' + site.name +'.pp'
@@ -25,14 +23,13 @@ def save(site):
 def send(to, text):
     import smtplib
     from email.mime.text import MIMEText
-    msg = MIMEText( text )
+    from subprocess import Popen, PIPE
+    msg = MIMEText( text, 'plain', 'utf-8' )
     msg['Subject'] =  'Test-site errors.'
     msg['From'] = 'test@site.check'
     msg['To'] = to
-    post = smtplib.SMTP('localhost')
-    result = post.sendmail('test@site.check', [ to ], msg.as_string())
-    post.quit()
-    return result
+    proc = Popen(['/usr/sbin/sendmail','-t'],stdin = PIPE)
+    proc.communicate(bytes(msg.as_string()+'\n','utf-8'))
 
 def read( name ):
     file = io.open( os.path.join(image_dir,name),'rb')
@@ -83,6 +80,7 @@ def main():
                               dest = 'mail',
                               default = None,
                               help = 'Send mail if site is <bad>.')
+
     pars = parser.parse_args()
 
     if pars.vary == 'image':
@@ -99,11 +97,16 @@ def main():
                 if site.is_bad: text += str(site)
         else:
             site = check( pars.name + '.pp' )
-            text = site
+            text = str(site)
             print(text)
 
-        if pars.mail != None:
-            send(pars.mail,text)
+        if pars.mail != None and text !='' :
+            try:
+                send(pars.mail,text)
+            except:
+                print('Send error!' + str(sys.exc_info()))
+            else:
+                print('Send to %s successfull.' % pars.mail)
 
 if __name__ == '__main__':
     main()
